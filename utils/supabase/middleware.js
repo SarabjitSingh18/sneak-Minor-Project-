@@ -2,7 +2,6 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
-
 export async function updateSession(request) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -17,12 +16,14 @@ export async function updateSession(request) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
+
           supabaseResponse = NextResponse.next({
             request,
           });
+
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -31,8 +32,12 @@ export async function updateSession(request) {
     }
   );
 
-  // refreshing the auth token
-  await supabase.auth.getUser();
+  // 🔥 IMPORTANT: never let this crash middleware
+  try {
+    await supabase.auth.getUser();
+  } catch (error) {
+    console.log("Session refresh failed:", error.message);
+  }
 
   return supabaseResponse;
 }
